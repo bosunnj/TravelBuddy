@@ -1,132 +1,116 @@
 package com.jenstine.travelKing.ui.screens.see
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
-import com.jenstine.travelKing.domain.model.TravelDestination
-import com.jenstine.travelKing.ui.components.DestinationCard
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeeScreen(viewModel: SeeViewModel = hiltViewModel()) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val cameraTarget by viewModel.cameraTarget.collectAsStateWithLifecycle()
+    val markerTitle by viewModel.markerTitle.collectAsStateWithLifecycle()
+    val isSearching by viewModel.isSearching.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            SegmentedButton(
-                selected = viewMode == SeeViewMode.GALLERY,
-                onClick = { viewModel.setViewMode(SeeViewMode.GALLERY) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-            ) { Text("Gallery") }
-            SegmentedButton(
-                selected = viewMode == SeeViewMode.MAP,
-                onClick = { viewModel.setViewMode(SeeViewMode.MAP) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-            ) { Text("Map") }
-        }
-
-        when (val state = uiState) {
-            is SeeUiState.Loading -> LoadingContent()
-            is SeeUiState.Success -> when (viewMode) {
-                SeeViewMode.GALLERY -> GalleryContent(state.destinations)
-                SeeViewMode.MAP     -> MapContent(state.destinations)
-            }
-            is SeeUiState.Error -> ErrorContent(
-                message = state.message,
-                onRetry = viewModel::retry
-            )
-        }
-    }
-}
-
-@Composable
-private fun GalleryContent(destinations: List<TravelDestination>) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(destinations, key = { it.id }) { destination ->
-            DestinationCard(destination = destination)
-        }
-    }
-}
-
-@Composable
-private fun MapContent(destinations: List<TravelDestination>) {
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(LatLng(20.0, 0.0), 2f)
     }
-    GoogleMap(
-        modifier = Modifier.fillMaxSize(),
-        cameraPositionState = cameraPositionState
-    ) {
-        destinations.forEach { destination ->
-            Marker(
-                state = rememberMarkerState(
-                    position = LatLng(destination.latitude, destination.longitude)
-                ),
-                title = destination.name,
-                snippet = destination.country
+
+    LaunchedEffect(cameraTarget) {
+        cameraTarget?.let { target ->
+            cameraPositionState.animate(
+                update = CameraUpdateFactory.newLatLngZoom(target, 12f),
+                durationMs = 1000
             )
         }
     }
-}
 
-@Composable
-private fun LoadingContent() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
-}
+    Column(modifier = Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = viewModel::onSearchQueryChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            placeholder = { Text("Search a city, e.g. Rome") },
+            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                when {
+                    isSearching -> CircularProgressIndicator(
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                    searchQuery.isNotEmpty() -> IconButton(
+                        onClick = { viewModel.onSearchQueryChange("") }
+                    ) {
+                        Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                    }
+                }
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(24.dp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
+                viewModel.searchCity()
+                keyboardController?.hide()
+            })
+        )
 
-@Composable
-private fun ErrorContent(message: String, onRetry: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        if (error != null) {
             Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error
+                text = error!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(onClick = onRetry) { Text("Retry") }
+        }
+
+        Box(modifier = Modifier.weight(1f)) {
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState
+            ) {
+                cameraTarget?.let { target ->
+                    Marker(
+                        state = rememberMarkerState(position = target),
+                        title = markerTitle
+                    )
+                }
+            }
         }
     }
 }

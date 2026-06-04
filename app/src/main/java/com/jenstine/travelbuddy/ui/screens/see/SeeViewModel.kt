@@ -1,56 +1,72 @@
-﻿package com.jenstine.travelKing.ui.screens.see
+package com.jenstine.travelKing.ui.screens.see
 
+import android.content.Context
+import android.location.Geocoder
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jenstine.travelKing.data.repository.SeeRepository
-import com.jenstine.travelKing.domain.model.TravelDestination
+import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Locale
 import javax.inject.Inject
-
-enum class SeeViewMode { GALLERY, MAP }
-
-sealed class SeeUiState {
-    object Loading : SeeUiState()
-    data class Success(val destinations: List<TravelDestination>) : SeeUiState()
-    data class Error(val message: String) : SeeUiState()
-}
 
 @HiltViewModel
 class SeeViewModel @Inject constructor(
-    private val repository: SeeRepository
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<SeeUiState>(SeeUiState.Loading)
-    val uiState: StateFlow<SeeUiState> = _uiState.asStateFlow()
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _viewMode = MutableStateFlow(SeeViewMode.GALLERY)
-    val viewMode: StateFlow<SeeViewMode> = _viewMode.asStateFlow()
+    private val _cameraTarget = MutableStateFlow<LatLng?>(null)
+    val cameraTarget: StateFlow<LatLng?> = _cameraTarget.asStateFlow()
 
-    init {
-        loadDestinations()
+    private val _markerTitle = MutableStateFlow("")
+    val markerTitle: StateFlow<String> = _markerTitle.asStateFlow()
+
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+        if (query.isBlank()) _error.value = null
     }
 
-    fun setViewMode(mode: SeeViewMode) {
-        _viewMode.value = mode
-    }
+    fun searchCity() {
+        val query = _searchQuery.value.trim()
+        if (query.isBlank()) return
 
-    fun retry() {
-        loadDestinations()
-    }
-
-    private fun loadDestinations() {
         viewModelScope.launch {
-            _uiState.value = SeeUiState.Loading
-            try {
-                _uiState.value = SeeUiState.Success(repository.getDestinations())
-            } catch (e: Exception) {
-                _uiState.value = SeeUiState.Error(e.message ?: "Failed to load destinations")
+            _isSearching.value = true
+            _error.value = null
+
+            val latLng = withContext(Dispatchers.IO) {
+                runCatching {
+                    @Suppress("DEPRECATION")
+                    Geocoder(context, Locale.getDefault())
+                        .getFromLocationName(query, 1)
+                        ?.firstOrNull()
+                        ?.let { LatLng(it.latitude, it.longitude) }
+                }.getOrNull()
             }
+
+            if (latLng != null) {
+                _cameraTarget.value = latLng
+                _markerTitle.value = query
+            } else {
+                _error.value = "\"$query\" not found. Try a different city name."
+            }
+
+            _isSearching.value = false
         }
     }
 }
-
