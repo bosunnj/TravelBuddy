@@ -2,6 +2,7 @@ package com.jenstine.travelKing.ui.screens.read
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jenstine.travelKing.data.repository.ApiAuthException
 import com.jenstine.travelKing.data.repository.ReadRepository
 import com.jenstine.travelKing.data.repository.SettingsRepository
 import com.jenstine.travelKing.domain.model.TravelArticle
@@ -17,7 +18,10 @@ import javax.inject.Inject
 
 sealed class ReadUiState {
     object Loading : ReadUiState()
-    data class Success(val articles: List<TravelArticle>) : ReadUiState()
+    data class Success(
+        val articles: List<TravelArticle>,
+        val notice: String? = null   // non-null when showing fallback content
+    ) : ReadUiState()
     data class Error(val message: String) : ReadUiState()
 }
 
@@ -42,10 +46,11 @@ class ReadViewModel @Inject constructor(
         if (state is ReadUiState.Success && query.isNotBlank()) {
             val terms = query.trim().split("\\s+".toRegex())
             ReadUiState.Success(
-                state.articles.filter { article ->
+                articles = state.articles.filter { article ->
                     val haystack = "${article.title} ${article.destination} ${article.category}"
                     terms.all { term -> haystack.contains(term, ignoreCase = true) }
-                }
+                },
+                notice = state.notice
             )
         } else {
             state
@@ -65,8 +70,15 @@ class ReadViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = ReadUiState.Success(repository.refreshArticles())
+            } catch (e: ApiAuthException) {
+                _uiState.value = ReadUiState.Error(e.message ?: "API key error")
             } catch (e: Exception) {
-                _uiState.value = ReadUiState.Error(e.message ?: "Failed to load articles")
+                val current = (_uiState.value as? ReadUiState.Success)?.articles
+                    ?: repository.getFallbackArticles()
+                _uiState.value = ReadUiState.Success(
+                    articles = current,
+                    notice = e.message
+                )
             } finally {
                 _isRefreshing.value = false
             }
@@ -80,8 +92,13 @@ class ReadViewModel @Inject constructor(
             _uiState.value = ReadUiState.Loading
             try {
                 _uiState.value = ReadUiState.Success(repository.getArticles())
+            } catch (e: ApiAuthException) {
+                _uiState.value = ReadUiState.Error(e.message ?: "API key error")
             } catch (e: Exception) {
-                _uiState.value = ReadUiState.Error(e.message ?: "Failed to load articles")
+                _uiState.value = ReadUiState.Success(
+                    articles = repository.getFallbackArticles(),
+                    notice = e.message
+                )
             }
         }
     }

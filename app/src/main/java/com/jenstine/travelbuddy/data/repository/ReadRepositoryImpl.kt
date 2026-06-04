@@ -13,45 +13,27 @@ import retrofit2.HttpException
 import java.util.UUID
 import javax.inject.Inject
 
-/** Thrown only for auth failures (401/403) that require the user to fix their key. */
-class ApiAuthException(message: String) : Exception(message)
-
 class ReadRepositoryImpl @Inject constructor(
     private val apiService: GeminiApiService,
     private val settingsRepository: SettingsRepository,
     private val gson: Gson
 ) : ReadRepository {
 
-    // Survives the ViewModel lifetime; cleared only on explicit refresh
     private var cache: List<TravelArticle>? = null
+
+    override fun getFallbackArticles(): List<TravelArticle> = MOCK_ARTICLES
 
     override suspend fun getArticles(): List<TravelArticle> {
         val apiKey = settingsRepository.settings.first().aiApiKey.trim()
         if (apiKey.isBlank()) return MOCK_ARTICLES
-
-        // Return cache immediately if available (no API call on re-entry)
         cache?.let { return it }
-
-        return try {
-            fetchFromGemini(apiKey).also { cache = it }
-        } catch (e: ApiAuthException) {
-            throw e                    // 401/403 — user must fix their key
-        } catch (e: Exception) {
-            MOCK_ARTICLES              // 429/network/parse — show sample content silently
-        }
+        return fetchFromGemini(apiKey).also { cache = it }
     }
 
     override suspend fun refreshArticles(): List<TravelArticle> {
         val apiKey = settingsRepository.settings.first().aiApiKey.trim()
         if (apiKey.isBlank()) return MOCK_ARTICLES
-
-        return try {
-            fetchFromGemini(apiKey).also { cache = it }
-        } catch (e: ApiAuthException) {
-            throw e
-        } catch (e: Exception) {
-            cache ?: MOCK_ARTICLES     // on rate-limit: keep old cache if we have it
-        }
+        return fetchFromGemini(apiKey).also { cache = it }
     }
 
     private suspend fun fetchFromGemini(apiKey: String): List<TravelArticle> {

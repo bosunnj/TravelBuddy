@@ -42,6 +42,7 @@ fun ReadScreen(viewModel: ReadViewModel = hiltViewModel()) {
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val hasApiKey by viewModel.hasApiKey.collectAsStateWithLifecycle()
+    val notice = (uiState as? ReadUiState.Success)?.notice
 
     Column(modifier = Modifier.fillMaxSize()) {
         OutlinedTextField(
@@ -63,8 +64,19 @@ fun ReadScreen(viewModel: ReadViewModel = hiltViewModel()) {
             shape = RoundedCornerShape(24.dp)
         )
 
-        if (!hasApiKey) {
-            Surface(
+        when {
+            notice != null -> Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "⚠ $notice — showing sample articles. Pull to retry.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+            !hasApiKey -> Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier.fillMaxWidth()
             ) {
