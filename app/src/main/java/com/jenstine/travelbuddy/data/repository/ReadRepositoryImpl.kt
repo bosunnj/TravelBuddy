@@ -19,7 +19,7 @@ class ReadRepositoryImpl @Inject constructor(
 ) : ReadRepository {
 
     override suspend fun getArticles(): List<TravelArticle> {
-        val apiKey = settingsRepository.settings.first().aiApiKey
+        val apiKey = settingsRepository.settings.first().aiApiKey.trim()
         if (apiKey.isBlank()) return MOCK_ARTICLES
         return fetchFromGemini(apiKey)
     }

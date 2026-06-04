@@ -45,7 +45,7 @@ class SettingsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun setAiApiKey(key: String) {
-        dataStore.edit { it[Keys.AI_API_KEY] = key }
+        dataStore.edit { it[Keys.AI_API_KEY] = key.trim() }
     }
 
     override suspend fun setCurrency(currency: String) {
