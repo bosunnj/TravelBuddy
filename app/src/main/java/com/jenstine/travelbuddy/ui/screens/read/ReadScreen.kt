@@ -69,7 +69,7 @@ fun ReadScreen(viewModel: ReadViewModel = hiltViewModel()) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Add an AI API key in ⚙ Settings to get AI-generated travel content. Showing sample articles.",
+                    text = "Add a Gemini API key in ⚙ Settings to get AI-generated travel content.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)

@@ -40,11 +40,11 @@ class ReadViewModel @Inject constructor(
 
     val uiState: StateFlow<ReadUiState> = combine(_uiState, _searchQuery) { state, query ->
         if (state is ReadUiState.Success && query.isNotBlank()) {
+            val terms = query.trim().split("\\s+".toRegex())
             ReadUiState.Success(
-                state.articles.filter {
-                    it.title.contains(query, ignoreCase = true) ||
-                    it.destination.contains(query, ignoreCase = true) ||
-                    it.category.contains(query, ignoreCase = true)
+                state.articles.filter { article ->
+                    val haystack = "${article.title} ${article.destination} ${article.category}"
+                    terms.all { term -> haystack.contains(term, ignoreCase = true) }
                 }
             )
         } else {
