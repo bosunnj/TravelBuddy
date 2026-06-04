@@ -9,6 +9,7 @@ import com.jenstine.travelKing.data.remote.model.GeminiPart
 import com.jenstine.travelKing.data.remote.model.GeminiRequest
 import com.jenstine.travelKing.domain.model.TravelArticle
 import kotlinx.coroutines.flow.first
+import retrofit2.HttpException
 import java.util.UUID
 import javax.inject.Inject
 
@@ -25,39 +26,50 @@ class ReadRepositoryImpl @Inject constructor(
     }
 
     private suspend fun fetchFromGemini(apiKey: String): List<TravelArticle> {
-        val response = apiService.generateContent(
-            apiKey = apiKey,
-            model = MODEL,
-            request = GeminiRequest(
-                contents = listOf(
-                    GeminiContent(parts = listOf(GeminiPart(ARTICLE_PROMPT)))
-                ),
-                generationConfig = GeminiGenerationConfig(maxOutputTokens = 2048)
+        try {
+            val response = apiService.generateContent(
+                apiKey = apiKey,
+                model = MODEL,
+                request = GeminiRequest(
+                    contents = listOf(
+                        GeminiContent(parts = listOf(GeminiPart(ARTICLE_PROMPT)))
+                    ),
+                    generationConfig = GeminiGenerationConfig(maxOutputTokens = 2048)
+                )
             )
-        )
 
-        val raw = response.candidates
-            .firstOrNull()?.content?.parts?.firstOrNull()?.text
-            ?: return MOCK_ARTICLES
+            val raw = response.candidates
+                .firstOrNull()?.content?.parts?.firstOrNull()?.text
+                ?: return MOCK_ARTICLES
 
-        val json = raw.trim()
-            .removePrefix("```json").removePrefix("```")
-            .removeSuffix("```").trim()
+            val json = raw.trim()
+                .removePrefix("```json").removePrefix("```")
+                .removeSuffix("```").trim()
 
-        return gson.fromJson(json, Array<ArticleDto>::class.java).map { dto ->
-            TravelArticle(
-                id              = dto.id.ifBlank { UUID.randomUUID().toString() },
-                title           = dto.title,
-                destination     = dto.destination,
-                summary         = dto.summary,
-                category        = dto.category,
-                readTimeMinutes = dto.readTimeMinutes.coerceIn(1, 30)
+            return gson.fromJson(json, Array<ArticleDto>::class.java).map { dto ->
+                TravelArticle(
+                    id              = dto.id.ifBlank { UUID.randomUUID().toString() },
+                    title           = dto.title,
+                    destination     = dto.destination,
+                    summary         = dto.summary,
+                    category        = dto.category,
+                    readTimeMinutes = dto.readTimeMinutes.coerceIn(1, 30)
+                )
+            }
+        } catch (e: HttpException) {
+            throw Exception(
+                when (e.code()) {
+                    429  -> "Rate limit reached. Wait a minute then pull to refresh."
+                    401  -> "Invalid API key. Re-enter your Gemini key in ⚙ Settings."
+                    403  -> "API key lacks permission. Check it is a Gemini API key from aistudio.google.com."
+                    else -> "Gemini API error ${e.code()}. Pull to refresh to try again."
+                }
             )
         }
     }
 
     companion object {
-        private const val MODEL = "gemini-2.0-flash"
+        private const val MODEL = "gemini-2.0-flash-lite"
 
         private const val ARTICLE_PROMPT = """Generate 6 engaging travel articles as a JSON array. Mix a variety of global destinations and travel styles.
 Each object must have exactly these keys:
