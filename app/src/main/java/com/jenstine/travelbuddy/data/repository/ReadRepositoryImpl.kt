@@ -1,14 +1,72 @@
-﻿package com.jenstine.travelKing.data.repository
+package com.jenstine.travelKing.data.repository
 
+import com.google.gson.Gson
+import com.jenstine.travelKing.data.remote.api.AnthropicApiService
+import com.jenstine.travelKing.data.remote.model.AnthropicMessage
+import com.jenstine.travelKing.data.remote.model.AnthropicRequest
+import com.jenstine.travelKing.data.remote.model.ArticleDto
 import com.jenstine.travelKing.domain.model.TravelArticle
+import kotlinx.coroutines.flow.first
+import java.util.UUID
 import javax.inject.Inject
 
-class ReadRepositoryImpl @Inject constructor() : ReadRepository {
+class ReadRepositoryImpl @Inject constructor(
+    private val apiService: AnthropicApiService,
+    private val settingsRepository: SettingsRepository,
+    private val gson: Gson
+) : ReadRepository {
 
-    override suspend fun getArticles(): List<TravelArticle> = MOCK_ARTICLES
+    override suspend fun getArticles(): List<TravelArticle> {
+        val apiKey = settingsRepository.settings.first().aiApiKey
+        if (apiKey.isBlank()) return MOCK_ARTICLES
+        return runCatching { fetchFromClaude(apiKey) }.getOrElse { MOCK_ARTICLES }
+    }
+
+    private suspend fun fetchFromClaude(apiKey: String): List<TravelArticle> {
+        val response = apiService.createMessage(
+            apiKey = apiKey,
+            request = AnthropicRequest(
+                model = MODEL,
+                maxTokens = 2048,
+                messages = listOf(AnthropicMessage(role = "user", content = ARTICLE_PROMPT))
+            )
+        )
+
+        val raw = response.content.firstOrNull { it.type == "text" }?.text
+            ?: return MOCK_ARTICLES
+
+        // Claude occasionally wraps output in ```json … ``` even when told not to
+        val json = raw.trim()
+            .removePrefix("```json").removePrefix("```")
+            .removeSuffix("```").trim()
+
+        return gson.fromJson(json, Array<ArticleDto>::class.java).map { dto ->
+            TravelArticle(
+                id               = dto.id.ifBlank { UUID.randomUUID().toString() },
+                title            = dto.title,
+                destination      = dto.destination,
+                summary          = dto.summary,
+                category         = dto.category,
+                readTimeMinutes  = dto.readTimeMinutes.coerceIn(1, 30)
+            )
+        }
+    }
 
     companion object {
-        private val MOCK_ARTICLES = listOf(
+        private const val MODEL = "claude-haiku-4-5-20251001"
+
+        private const val ARTICLE_PROMPT = """Generate 6 engaging travel articles as a JSON array. Mix a variety of global destinations and travel styles.
+Each object must have exactly these keys:
+  "id"              - unique string "1" through "6"
+  "title"           - compelling article title (max 65 chars)
+  "destination"     - "City, Country" or region name
+  "summary"         - 2 to 3 vivid sentences describing the destination or travel topic
+  "category"        - exactly one of: Guide, Tips, Food, Culture, Adventure
+  "readTimeMinutes" - integer from 4 to 10
+
+Return ONLY the raw JSON array. No markdown fences, no explanation, no trailing text."""
+
+        val MOCK_ARTICLES = listOf(
             TravelArticle(
                 id = "1",
                 title = "Ultimate Guide to Tokyo: Where Tradition Meets the Future",
@@ -76,4 +134,3 @@ class ReadRepositoryImpl @Inject constructor() : ReadRepository {
         )
     }
 }
-
