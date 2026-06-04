@@ -62,7 +62,15 @@ class ReadViewModel @Inject constructor(
 
     fun refresh() {
         _isRefreshing.value = true
-        loadArticles()
+        viewModelScope.launch {
+            try {
+                _uiState.value = ReadUiState.Success(repository.refreshArticles())
+            } catch (e: Exception) {
+                _uiState.value = ReadUiState.Error(e.message ?: "Failed to load articles")
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
     }
 
     fun retry() = loadArticles()
@@ -74,8 +82,6 @@ class ReadViewModel @Inject constructor(
                 _uiState.value = ReadUiState.Success(repository.getArticles())
             } catch (e: Exception) {
                 _uiState.value = ReadUiState.Error(e.message ?: "Failed to load articles")
-            } finally {
-                _isRefreshing.value = false
             }
         }
     }

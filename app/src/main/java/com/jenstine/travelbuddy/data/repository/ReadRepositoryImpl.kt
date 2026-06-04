@@ -13,16 +13,45 @@ import retrofit2.HttpException
 import java.util.UUID
 import javax.inject.Inject
 
+/** Thrown only for auth failures (401/403) that require the user to fix their key. */
+class ApiAuthException(message: String) : Exception(message)
+
 class ReadRepositoryImpl @Inject constructor(
     private val apiService: GeminiApiService,
     private val settingsRepository: SettingsRepository,
     private val gson: Gson
 ) : ReadRepository {
 
+    // Survives the ViewModel lifetime; cleared only on explicit refresh
+    private var cache: List<TravelArticle>? = null
+
     override suspend fun getArticles(): List<TravelArticle> {
         val apiKey = settingsRepository.settings.first().aiApiKey.trim()
         if (apiKey.isBlank()) return MOCK_ARTICLES
-        return fetchFromGemini(apiKey)
+
+        // Return cache immediately if available (no API call on re-entry)
+        cache?.let { return it }
+
+        return try {
+            fetchFromGemini(apiKey).also { cache = it }
+        } catch (e: ApiAuthException) {
+            throw e                    // 401/403 — user must fix their key
+        } catch (e: Exception) {
+            MOCK_ARTICLES              // 429/network/parse — show sample content silently
+        }
+    }
+
+    override suspend fun refreshArticles(): List<TravelArticle> {
+        val apiKey = settingsRepository.settings.first().aiApiKey.trim()
+        if (apiKey.isBlank()) return MOCK_ARTICLES
+
+        return try {
+            fetchFromGemini(apiKey).also { cache = it }
+        } catch (e: ApiAuthException) {
+            throw e
+        } catch (e: Exception) {
+            cache ?: MOCK_ARTICLES     // on rate-limit: keep old cache if we have it
+        }
     }
 
     private suspend fun fetchFromGemini(apiKey: String): List<TravelArticle> {
@@ -57,14 +86,12 @@ class ReadRepositoryImpl @Inject constructor(
                 )
             }
         } catch (e: HttpException) {
-            throw Exception(
-                when (e.code()) {
-                    429  -> "Rate limit reached. Wait a minute then pull to refresh."
-                    401  -> "Invalid API key. Re-enter your Gemini key in ⚙ Settings."
-                    403  -> "API key lacks permission. Check it is a Gemini API key from aistudio.google.com."
-                    else -> "Gemini API error ${e.code()}. Pull to refresh to try again."
-                }
-            )
+            throw when (e.code()) {
+                401  -> ApiAuthException("Invalid API key. Re-enter your Gemini key in ⚙ Settings.")
+                403  -> ApiAuthException("API key lacks permission. Ensure it is a Gemini API key from aistudio.google.com.")
+                429  -> Exception("Rate limit reached.")
+                else -> Exception("Gemini API error ${e.code()}.")
+            }
         }
     }
 
