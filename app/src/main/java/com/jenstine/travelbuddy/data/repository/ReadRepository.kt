@@ -1,7 +1,8 @@
-package com.jenstine.travelbuddy.data.repository
+﻿package com.jenstine.travelKing.data.repository
 
-import com.jenstine.travelbuddy.domain.model.TravelArticle
+import com.jenstine.travelKing.domain.model.TravelArticle
 
 interface ReadRepository {
     suspend fun getArticles(): List<TravelArticle>
 }
+

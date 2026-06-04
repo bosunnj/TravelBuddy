@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy
+﻿package com.jenstine.travelKing
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,10 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.jenstine.travelbuddy.navigation.AppNavHost
-import com.jenstine.travelbuddy.navigation.BottomNavItem
-import com.jenstine.travelbuddy.navigation.Screen
-import com.jenstine.travelbuddy.ui.theme.TravelBuddyTheme
+import com.jenstine.travelKing.navigation.AppNavHost
+import com.jenstine.travelKing.navigation.BottomNavItem
+import com.jenstine.travelKing.navigation.Screen
+import com.jenstine.travelKing.ui.theme.TravelBuddyTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -87,3 +87,4 @@ fun TravelBuddyApp() {
         AppNavHost(navController = navController, modifier = Modifier.padding(innerPadding))
     }
 }
+

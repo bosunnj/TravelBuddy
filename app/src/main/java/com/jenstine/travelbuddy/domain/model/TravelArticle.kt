@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy.domain.model
+﻿package com.jenstine.travelKing.domain.model
 
 data class TravelArticle(
     val id: String,
@@ -8,3 +8,4 @@ data class TravelArticle(
     val category: String,
     val readTimeMinutes: Int
 )
+

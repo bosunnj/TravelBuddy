@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy.ui.theme
+﻿package com.jenstine.travelKing.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

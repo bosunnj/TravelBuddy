@@ -1,6 +1,6 @@
-package com.jenstine.travelbuddy.data.repository
+﻿package com.jenstine.travelKing.data.repository
 
-import com.jenstine.travelbuddy.domain.model.TravelArticle
+import com.jenstine.travelKing.domain.model.TravelArticle
 import javax.inject.Inject
 
 class ReadRepositoryImpl @Inject constructor() : ReadRepository {
@@ -76,3 +76,4 @@ class ReadRepositoryImpl @Inject constructor() : ReadRepository {
         )
     }
 }
+

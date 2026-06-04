@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy
+﻿package com.jenstine.travelKing
 
 import org.junit.Test
 

@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy.ui.screens.write
+﻿package com.jenstine.travelKing.ui.screens.write
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,3 +39,4 @@ fun WriteScreen() {
         )
     }
 }
+

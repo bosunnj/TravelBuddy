@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy.ui.components
+﻿package com.jenstine.travelKing.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.jenstine.travelbuddy.domain.model.TravelArticle
+import com.jenstine.travelKing.domain.model.TravelArticle
 
 @Composable
 fun TravelArticleCard(article: TravelArticle, modifier: Modifier = Modifier) {
@@ -75,3 +75,4 @@ fun TravelArticleCard(article: TravelArticle, modifier: Modifier = Modifier) {
         }
     }
 }
+

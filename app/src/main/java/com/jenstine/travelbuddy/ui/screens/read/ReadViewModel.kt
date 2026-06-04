@@ -1,9 +1,9 @@
-package com.jenstine.travelbuddy.ui.screens.read
+﻿package com.jenstine.travelKing.ui.screens.read
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jenstine.travelbuddy.data.repository.ReadRepository
-import com.jenstine.travelbuddy.domain.model.TravelArticle
+import com.jenstine.travelKing.data.repository.ReadRepository
+import com.jenstine.travelKing.domain.model.TravelArticle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -65,3 +65,4 @@ class ReadViewModel @Inject constructor(
         }
     }
 }
+

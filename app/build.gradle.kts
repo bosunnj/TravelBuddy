@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -5,8 +7,12 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+
 android {
-    namespace = "com.jenstine.travelbuddy"
+    namespace = "com.jenstine.travelKing"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -14,13 +20,14 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.jenstine.travelbuddy"
+        applicationId = "com.jenstine.travelKing"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["MAPS_API_KEY"] = localProps.getProperty("MAPS_API_KEY", "")
     }
 
     buildTypes {

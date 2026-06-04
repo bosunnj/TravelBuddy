@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy.ui.theme
+﻿package com.jenstine.travelKing.ui.theme
 
 import android.app.Activity
 import android.os.Build

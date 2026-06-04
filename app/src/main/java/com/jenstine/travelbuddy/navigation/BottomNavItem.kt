@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy.navigation
+﻿package com.jenstine.travelKing.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -15,3 +15,4 @@ enum class BottomNavItem(
     SEE("see",   Icons.Filled.Explore,  "See"),
     WRITE("write", Icons.Filled.Edit,   "Write")
 }
+

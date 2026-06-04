@@ -1,7 +1,7 @@
 ﻿package com.jenstine.travelKing.di
 
-import com.jenstine.travelKing.data.repository.ReadRepository
-import com.jenstine.travelKing.data.repository.ReadRepositoryImpl
+import com.jenstine.travelKing.data.repository.SeeRepository
+import com.jenstine.travelKing.data.repository.SeeRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -10,10 +10,10 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class ReadModule {
+abstract class SeeModule {
 
     @Binds
     @Singleton
-    abstract fun bindReadRepository(impl: ReadRepositoryImpl): ReadRepository
+    abstract fun bindSeeRepository(impl: SeeRepositoryImpl): SeeRepository
 }
 

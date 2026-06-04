@@ -1,4 +1,4 @@
-package com.jenstine.travelbuddy.ui.screens.settings
+﻿package com.jenstine.travelKing.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,3 +44,4 @@ fun SettingsScreen(onBack: () -> Unit) {
         }
     }
 }
+
