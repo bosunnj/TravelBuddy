@@ -1,7 +1,7 @@
 package com.jenstine.travelKing.di
 
 import com.google.gson.Gson
-import com.jenstine.travelKing.data.remote.api.AnthropicApiService
+import com.jenstine.travelKing.data.remote.api.GeminiApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,14 +25,6 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient =
         OkHttpClient.Builder()
-            .addInterceptor { chain ->
-                // Inject Anthropic version header on every request
-                chain.proceed(
-                    chain.request().newBuilder()
-                        .addHeader("anthropic-version", "2023-06-01")
-                        .build()
-                )
-            }
             .addInterceptor(
                 HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
             )
@@ -44,13 +36,13 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(client: OkHttpClient, gson: Gson): Retrofit =
         Retrofit.Builder()
-            .baseUrl("https://api.anthropic.com/")
+            .baseUrl("https://generativelanguage.googleapis.com/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
 
     @Provides
     @Singleton
-    fun provideAnthropicApiService(retrofit: Retrofit): AnthropicApiService =
-        retrofit.create(AnthropicApiService::class.java)
+    fun provideGeminiApiService(retrofit: Retrofit): GeminiApiService =
+        retrofit.create(GeminiApiService::class.java)
 }

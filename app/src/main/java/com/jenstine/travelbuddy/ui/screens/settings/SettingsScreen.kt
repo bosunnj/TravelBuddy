@@ -88,7 +88,7 @@ fun SettingsScreen(
         SectionHeader("Travel AI")
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Used for AI-generated travel suggestions (Read tab).",
+            text = "Gemini API key for AI-generated travel content (Read tab). Get a free key at aistudio.google.com.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -96,7 +96,7 @@ fun SettingsScreen(
         OutlinedTextField(
             value = apiKeyDraft,
             onValueChange = { apiKeyDraft = it },
-            label = { Text("AI API Key") },
+            label = { Text("Gemini API Key") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             visualTransformation = if (apiKeyVisible) VisualTransformation.None

@@ -1,17 +1,19 @@
 package com.jenstine.travelKing.data.repository
 
 import com.google.gson.Gson
-import com.jenstine.travelKing.data.remote.api.AnthropicApiService
-import com.jenstine.travelKing.data.remote.model.AnthropicMessage
-import com.jenstine.travelKing.data.remote.model.AnthropicRequest
+import com.jenstine.travelKing.data.remote.api.GeminiApiService
 import com.jenstine.travelKing.data.remote.model.ArticleDto
+import com.jenstine.travelKing.data.remote.model.GeminiContent
+import com.jenstine.travelKing.data.remote.model.GeminiGenerationConfig
+import com.jenstine.travelKing.data.remote.model.GeminiPart
+import com.jenstine.travelKing.data.remote.model.GeminiRequest
 import com.jenstine.travelKing.domain.model.TravelArticle
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 import javax.inject.Inject
 
 class ReadRepositoryImpl @Inject constructor(
-    private val apiService: AnthropicApiService,
+    private val apiService: GeminiApiService,
     private val settingsRepository: SettingsRepository,
     private val gson: Gson
 ) : ReadRepository {
@@ -19,41 +21,43 @@ class ReadRepositoryImpl @Inject constructor(
     override suspend fun getArticles(): List<TravelArticle> {
         val apiKey = settingsRepository.settings.first().aiApiKey
         if (apiKey.isBlank()) return MOCK_ARTICLES
-        return runCatching { fetchFromClaude(apiKey) }.getOrElse { MOCK_ARTICLES }
+        return runCatching { fetchFromGemini(apiKey) }.getOrElse { MOCK_ARTICLES }
     }
 
-    private suspend fun fetchFromClaude(apiKey: String): List<TravelArticle> {
-        val response = apiService.createMessage(
+    private suspend fun fetchFromGemini(apiKey: String): List<TravelArticle> {
+        val response = apiService.generateContent(
             apiKey = apiKey,
-            request = AnthropicRequest(
-                model = MODEL,
-                maxTokens = 2048,
-                messages = listOf(AnthropicMessage(role = "user", content = ARTICLE_PROMPT))
+            model = MODEL,
+            request = GeminiRequest(
+                contents = listOf(
+                    GeminiContent(parts = listOf(GeminiPart(ARTICLE_PROMPT)))
+                ),
+                generationConfig = GeminiGenerationConfig(maxOutputTokens = 2048)
             )
         )
 
-        val raw = response.content.firstOrNull { it.type == "text" }?.text
+        val raw = response.candidates
+            .firstOrNull()?.content?.parts?.firstOrNull()?.text
             ?: return MOCK_ARTICLES
 
-        // Claude occasionally wraps output in ```json … ``` even when told not to
         val json = raw.trim()
             .removePrefix("```json").removePrefix("```")
             .removeSuffix("```").trim()
 
         return gson.fromJson(json, Array<ArticleDto>::class.java).map { dto ->
             TravelArticle(
-                id               = dto.id.ifBlank { UUID.randomUUID().toString() },
-                title            = dto.title,
-                destination      = dto.destination,
-                summary          = dto.summary,
-                category         = dto.category,
-                readTimeMinutes  = dto.readTimeMinutes.coerceIn(1, 30)
+                id              = dto.id.ifBlank { UUID.randomUUID().toString() },
+                title           = dto.title,
+                destination     = dto.destination,
+                summary         = dto.summary,
+                category        = dto.category,
+                readTimeMinutes = dto.readTimeMinutes.coerceIn(1, 30)
             )
         }
     }
 
     companion object {
-        private const val MODEL = "claude-haiku-4-5-20251001"
+        private const val MODEL = "gemini-2.0-flash"
 
         private const val ARTICLE_PROMPT = """Generate 6 engaging travel articles as a JSON array. Mix a variety of global destinations and travel styles.
 Each object must have exactly these keys:
